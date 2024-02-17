@@ -1,16 +1,19 @@
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PyPDFLoader, DirectoryLoader
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import DirectoryLoader
+
 from langchain.chains.summarize import load_summarize_chain
-from transformers import TSTokenizer, TSForConditionalGeneration
+# from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 from transformers import pipeline
 import torch
 import base64
 
 #Model and Tokenizer
-checkpoint = "LaMini-Flan-T5-248M"
-tokenizer = TSTokenizer.from_pretrained(checkpoint)
-base_model= TSForConditionalGeneration.from_pretrained(checkpoint, device_map= 'auto', torch_dtype= torch.float32)
+checkpoint = "MBZUAI/LaMini-Flan-T5-248M"
+tokenizer = T5Tokenizer.from_pretrained(checkpoint)
+base_model= T5ForConditionalGeneration.from_pretrained(checkpoint, device_map= 'auto', torch_dtype= torch.float32)
 
 #file loader and preprocessing
 def file_prepropcessor(file):
@@ -26,7 +29,7 @@ def file_prepropcessor(file):
 
 #LM pipeline
 def llm_pipeline(filepath):
-    pipe_sum= pipeline("summarization", model=base_model, tokenizer=tokenizer, max_length= 500, min_length= 50)
+    pipe_sum= pipeline("summarization", model=base_model, tokenizer=tokenizer, max_length= 1000, min_length= 400)
     input_text= file_prepropcessor(filepath)
     result = pipe_sum(input_text)
     result= result[0]['summary_text']
@@ -57,11 +60,11 @@ def main():
         if st.button("Summarize"):
             col1, col2 = st.columns(2)
             filepath = "data/"+uploaded_file.name
-            with open(filepath, "wb") as temp_file:
+            with open(filepath, 'wb') as temp_file:
                 temp_file.write(uploaded_file.read())
             with col1:
                 st.info("Uploaded File")
-                pdf_view = displayPDF(filepath)
+                pdf_viewer = displayPDF(filepath)
 
             with col2:
                 summary = llm_pipeline(filepath)
